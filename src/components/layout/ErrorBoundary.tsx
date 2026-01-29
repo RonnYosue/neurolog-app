@@ -41,8 +41,10 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // ✅ LOGGING MEJORADO PARA DEBUG
-    console.error('🚨 ErrorBoundary caught an error:', error);
-    console.error('📝 Error details:', errorInfo);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('🚨 ErrorBoundary caught an error:', error);
+      console.error('📝 Error details:', errorInfo);
+    }
     
     // ✅ ACTUALIZAR ESTADO CON INFORMACIÓN DETALLADA
     this.setState({
@@ -165,9 +167,11 @@ export function withErrorBoundary<P extends object>(
 // ✅ HOOK PARA MANEJAR ERRORES EN COMPONENTES FUNCIONALES
 export function useErrorHandler() {
   return (error: Error, errorInfo?: any) => {
-    console.error('🚨 Error handled by useErrorHandler:', error);
-    if (errorInfo) {
-      console.error('📝 Additional error info:', errorInfo);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('🚨 Error handled by useErrorHandler:', error);
+      if (errorInfo) {
+        console.error('📝 Additional error info:', errorInfo);
+      }
     }
     
     // ✅ OPCIONAL: Enviar a servicio de monitoreo

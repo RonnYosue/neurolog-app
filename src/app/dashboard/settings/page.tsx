@@ -49,7 +49,9 @@ export default function SettingsPage() {
   // ✅ EFECTO PARA SINCRONIZAR DATOS DEL USUARIO
   useEffect(() => {
     if (user) {
-      console.log('👤 Setting profile data from user:', user.full_name);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('👤 Setting profile data from user:', user.full_name);
+      }
       setProfileData({
         full_name: user.full_name || '',
         email: user.email || '',
@@ -88,7 +90,9 @@ export default function SettingsPage() {
       // ✅ Refrescar datos del usuario
       await refreshUser()
     } catch (error: any) {
-      console.error('Error updating profile:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating profile:', error)
+      }
       toast({
         title: "Error al actualizar",
         description: error.message || "No se pudieron guardar los cambios.",

@@ -564,7 +564,9 @@ export default function LogsPage() {
     try {
       await togglePrivacy(log.id);
     } catch (error) {
-      console.error('Error toggling privacy:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error toggling privacy:', error);
+      }
     }
   };
 

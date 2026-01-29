@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { sanitizeEmail, sanitizeString, validateEmail, validatePasswordStrength, checkRateLimit } from '@/lib/security'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,18 +36,33 @@ export default function RegisterPage() {
   }
 
   const validateForm = (): boolean => {
+    // Validar email
+    if (!validateEmail(formData.email)) {
+      setError("Por favor ingresa un email válido")
+      return false
+    }
+
+    // Validar contraseñas coinciden
     if (formData.password !== formData.confirmPassword) {
       setError("Las contraseñas no coinciden")
       return false
     }
 
-    if (formData.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres")
+    // Validar fortaleza de contraseña
+    const passwordValidation = validatePasswordStrength(formData.password);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.errors[0])
       return false
     }
 
+    // Validar nombre completo
     if (!formData.fullName.trim()) {
       setError("El nombre completo es requerido")
+      return false
+    }
+
+    if (formData.fullName.trim().length < 3) {
+      setError("El nombre completo debe tener al menos 3 caracteres")
       return false
     }
 
@@ -62,12 +78,24 @@ export default function RegisterPage() {
     setError(null)
 
     try {
+      // Sanitizar inputs
+      const sanitizedEmail = sanitizeEmail(formData.email);
+      const sanitizedFullName = sanitizeString(formData.fullName.trim());
+
+      // Rate limiting: máximo 3 registros por IP por hora
+      const rateLimitKey = `register:${sanitizedEmail}`;
+      const { allowed } = checkRateLimit(rateLimitKey, 3, 60 * 60 * 1000);
+      
+      if (!allowed) {
+        throw new Error('Demasiados intentos de registro. Por favor espera una hora.');
+      }
+
       const { error } = await supabase.auth.signUp({
-        email: formData.email,
+        email: sanitizedEmail,
         password: formData.password,
         options: {
           data: {
-            full_name: formData.fullName,
+            full_name: sanitizedFullName,
             role: formData.role
           }
         }
@@ -84,7 +112,9 @@ export default function RegisterPage() {
       }, 2000)
 
     } catch (err: any) {
-      console.error('Error signing up:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error signing up:', err)
+      }
       setError(err.message || 'Error al crear la cuenta')
     } finally {
       setLoading(false)

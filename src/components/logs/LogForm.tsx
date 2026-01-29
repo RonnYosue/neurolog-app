@@ -221,7 +221,9 @@ function AttachmentsManager({ attachments, onChange, childId }: AttachmentsManag
 
       onChange([...attachments, ...newAttachments]);
     } catch (error) {
-      console.error('Error uploading files:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error uploading files:', error);
+      }
     } finally {
       setUploading(false);
     }
@@ -434,7 +436,9 @@ export default function LogForm({ log, childId, mode, onSuccess, onCancel }: Log
         if (error) throw error;
         setCategories(data || []);
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching categories:', error);
+        }
       } finally {
         setLoadingCategories(false);
       }
@@ -459,7 +463,9 @@ export default function LogForm({ log, childId, mode, onSuccess, onCancel }: Log
         router.push(`/dashboard/logs/${result.id}`);
       }
     } catch (error) {
-      console.error('Error saving log:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error saving log:', error);
+      }
     }
   };
 

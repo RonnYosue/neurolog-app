@@ -80,13 +80,22 @@ export async function createRouteHandlerClient() {
  * Obtiene la sesión del usuario en Server Components
  */
 export async function getServerSession() {
-  const supabase = await createServerComponentClient()
-  
   try {
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await createServerComponentClient()
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    if (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error getting server session:', error)
+      }
+      return null
+    }
+    
     return session
   } catch (error) {
-    console.error('Error getting server session:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error getting server session:', error)
+    }
     return null
   }
 }
@@ -95,13 +104,22 @@ export async function getServerSession() {
  * Obtiene el usuario actual en Server Components
  */
 export async function getServerUser() {
-  const supabase = await createServerComponentClient()
-  
   try {
-    const { data: { user } } = await supabase.auth.getUser()
+    const supabase = await createServerComponentClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error getting server user:', error)
+      }
+      return null
+    }
+    
     return user
   } catch (error) {
-    console.error('Error getting server user:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error getting server user:', error)
+    }
     return null
   }
 }

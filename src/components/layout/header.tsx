@@ -76,7 +76,9 @@ export function Header() {
     try {
       await signOut();
     } catch (error) {
-      console.error('Error signing out:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error signing out:', error);
+      }
     }
   };
 

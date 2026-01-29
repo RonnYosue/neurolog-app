@@ -36,7 +36,9 @@ export function useCategories(): UseCategoriesReturn {
       setLoading(true)
       setError(null)
       
-      console.log('📚 Fetching categories...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📚 Fetching categories...')
+      }
       
       const { data, error } = await supabase
         .from('categories')
@@ -45,16 +47,22 @@ export function useCategories(): UseCategoriesReturn {
         .order('sort_order', { ascending: true })
 
       if (error) {
-        console.error('❌ Error fetching categories:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Error fetching categories:', error)
+        }
         throw error
       }
 
-      console.log('✅ Categories fetched successfully:', data?.length || 0)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Categories fetched successfully:', data?.length || 0)
+      }
       setCategories(data || [])
-    } catch (err: any) {
-      const errorMessage = err.message || 'Error al cargar las categorías'
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar las categorías'
       setError(errorMessage)
-      console.error('❌ Error in fetchCategories:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Error in fetchCategories:', err)
+      }
     } finally {
       setLoading(false)
     }

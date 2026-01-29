@@ -640,7 +640,9 @@ export default function ChildForm({ child, mode, onSuccess, onCancel }: ChildFor
       
       form.setValue('avatar_url', url);
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error uploading avatar:', error);
+      }
     } finally {
       setUploading(false);
     }
@@ -662,7 +664,9 @@ export default function ChildForm({ child, mode, onSuccess, onCancel }: ChildFor
         router.push(`/dashboard/children/${result.id}`);
       }
     } catch (error) {
-      console.error('Error saving child:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error saving child:', error);
+      }
     }
   };
 

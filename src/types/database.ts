@@ -3,6 +3,14 @@
 // NOTA: Este es un archivo placeholder. Para obtener los tipos completos ejecuta:
 // npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/database.ts
 
+import type {
+  UserPreferences,
+  EmergencyContact,
+  MedicalInfo,
+  EducationalInfo,
+  PrivacySettings
+} from './index'
+
 export interface Database {
   public: {
     Tables: {
@@ -20,7 +28,7 @@ export interface Database {
           last_failed_login?: string
           account_locked_until?: string
           timezone: string
-          preferences: any
+          preferences: UserPreferences
           created_at: string
           updated_at: string
         }
@@ -37,7 +45,7 @@ export interface Database {
           last_failed_login?: string
           account_locked_until?: string
           timezone?: string
-          preferences?: any
+          preferences?: UserPreferences
           created_at?: string
           updated_at?: string
         }
@@ -54,7 +62,7 @@ export interface Database {
           last_failed_login?: string
           account_locked_until?: string
           timezone?: string
-          preferences?: any
+          preferences?: UserPreferences
           created_at?: string
           updated_at?: string
         }
@@ -68,10 +76,10 @@ export interface Database {
           notes?: string
           is_active: boolean
           avatar_url?: string
-          emergency_contact: any
-          medical_info: any
-          educational_info: any
-          privacy_settings: any
+          emergency_contact: EmergencyContact[]
+          medical_info: MedicalInfo
+          educational_info: EducationalInfo
+          privacy_settings: PrivacySettings
           created_by: string
           created_at: string
           updated_at: string
@@ -84,10 +92,10 @@ export interface Database {
           notes?: string
           is_active?: boolean
           avatar_url?: string
-          emergency_contact?: any
-          medical_info?: any
-          educational_info?: any
-          privacy_settings?: any
+          emergency_contact?: EmergencyContact[]
+          medical_info?: MedicalInfo
+          educational_info?: EducationalInfo
+          privacy_settings?: PrivacySettings
           created_by: string
           created_at?: string
           updated_at?: string
@@ -100,10 +108,10 @@ export interface Database {
           notes?: string
           is_active?: boolean
           avatar_url?: string
-          emergency_contact?: any
-          medical_info?: any
-          educational_info?: any
-          privacy_settings?: any
+          emergency_contact?: EmergencyContact[]
+          medical_info?: MedicalInfo
+          educational_info?: EducationalInfo
+          privacy_settings?: PrivacySettings
           created_by?: string
           created_at?: string
           updated_at?: string

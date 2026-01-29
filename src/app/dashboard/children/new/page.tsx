@@ -110,7 +110,9 @@ export default function NewChildPage() {
       // Redirigir a la lista de niños
       router.push('/dashboard/children');
     } catch (error) {
-      console.error('Error creating child:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error creating child:', error);
+      }
       setErrors({ 
         submit: error instanceof Error ? error.message : 'Error al crear el niño' 
       });

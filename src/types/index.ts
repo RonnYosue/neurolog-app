@@ -2,12 +2,43 @@
 // src/types/index.ts - TIPOS ACTUALIZADOS PARA NUEVA BD
 // ================================================================
 
-// TIPOS BASE Y ENUMS
-export type UserRole = 'parent' | 'teacher' | 'specialist' | 'admin';
-export type RelationshipType = 'parent' | 'teacher' | 'specialist' | 'observer' | 'family';
-export type IntensityLevel = 'low' | 'medium' | 'high';
-export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
-export type AuditOperation = 'INSERT' | 'UPDATE' | 'DELETE' | 'SELECT';
+import { USER_ROLES, RELATIONSHIP_TYPES, INTENSITY_LEVELS, RISK_LEVELS, AUDIT_OPERATIONS } from '@/lib/constants';
+
+// TIPOS BASE Y ENUMS - Exportados desde constants.ts
+export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+export type RelationshipType = typeof RELATIONSHIP_TYPES[keyof typeof RELATIONSHIP_TYPES];
+export type IntensityLevel = typeof INTENSITY_LEVELS[keyof typeof INTENSITY_LEVELS];
+export type RiskLevel = typeof RISK_LEVELS[keyof typeof RISK_LEVELS];
+export type AuditOperation = typeof AUDIT_OPERATIONS[keyof typeof AUDIT_OPERATIONS];
+
+// Tipos para preferencias de usuario
+export interface UserPreferences {
+  theme?: 'light' | 'dark' | 'auto';
+  language?: string;
+  notifications_enabled?: boolean;
+  email_notifications?: boolean;
+  timezone?: string;
+  [key: string]: unknown;
+}
+
+// Tipos para notificaciones
+export interface NotificationPreferences {
+  email_on_new_log?: boolean;
+  email_on_flagged?: boolean;
+  email_on_review?: boolean;
+  sms_enabled?: boolean;
+  [key: string]: unknown;
+}
+
+// Tipos para adjuntos
+export interface Attachment {
+  id: string;
+  filename: string;
+  url: string;
+  mime_type: string;
+  size: number;
+  uploaded_at: string;
+}
 
 // ================================================================
 // PROFILE TYPES
@@ -26,7 +57,7 @@ export interface Profile {
   last_failed_login?: string | null;
   account_locked_until?: string | null;
   timezone: string;
-  preferences: Record<string, any>;
+  preferences: UserPreferences;
   created_at: string;
   updated_at: string;
 }
@@ -39,7 +70,7 @@ export interface ProfileInsert {
   avatar_url?: string | null;
   phone?: string | null;
   timezone?: string;
-  preferences?: Record<string, any>;
+  preferences?: UserPreferences;
 }
 
 export interface ProfileUpdate {
@@ -47,7 +78,7 @@ export interface ProfileUpdate {
   avatar_url?: string | null;
   phone?: string | null;
   timezone?: string;
-  preferences?: Record<string, any>;
+  preferences?: UserPreferences;
 }
 
 // ================================================================
@@ -143,7 +174,7 @@ export interface UserChildRelation {
   expires_at?: string | null;
   is_active: boolean;
   notes?: string | null;
-  notification_preferences: Record<string, any>;
+  notification_preferences: NotificationPreferences;
   created_at: string;
 }
 
@@ -158,7 +189,7 @@ export interface RelationInsert {
   granted_by: string;
   expires_at?: string | null;
   notes?: string | null;
-  notification_preferences?: Record<string, any>;
+  notification_preferences?: NotificationPreferences;
 }
 
 // Tipo combinado para niños con información de relación
@@ -175,6 +206,7 @@ export interface ChildWithRelation extends Child {
   relation_created_at: string;
   relation_expires_at?: string | null;
   creator_name: string;
+  user_relations?: UserChildRelation[];
 }
 
 // ================================================================
@@ -218,7 +250,7 @@ export interface DailyLog {
   is_private: boolean;
   is_deleted: boolean;
   is_flagged: boolean;
-  attachments: any[];
+  attachments: Attachment[];
   tags: string[];
   location?: string | null;
   weather?: string | null;
@@ -241,7 +273,7 @@ export interface LogInsert {
   intensity_level?: IntensityLevel;
   log_date?: string;
   is_private?: boolean;
-  attachments?: any[];
+  attachments?: Attachment[];
   tags?: string[];
   location?: string | null;
   weather?: string | null;
@@ -257,7 +289,7 @@ export interface LogUpdate {
   intensity_level?: IntensityLevel;
   log_date?: string;
   is_private?: boolean;
-  attachments?: any[];
+  attachments?: Attachment[];
   tags?: string[];
   location?: string | null;
   weather?: string | null;
@@ -269,6 +301,15 @@ export interface LogUpdate {
 
 // Tipo combinado para logs con información detallada
 export interface LogWithDetails extends DailyLog {
+  child_name: string;
+  child_avatar_url?: string | null;
+  category_name?: string | null;
+  category_color?: string | null;
+  category_icon?: string | null;
+  logged_by_name: string;
+  logged_by_avatar?: string | null;
+  reviewer_name?: string | null;
+  can_edit: boolean;
   child: {
     id: string;
     name: string;

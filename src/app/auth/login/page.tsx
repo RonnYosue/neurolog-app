@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { sanitizeEmail, validateEmail, checkRateLimit } from '@/lib/security'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,8 +29,24 @@ export default function LoginPage() {
     setError(null)
 
     try {
+      // Validar formato de email
+      if (!validateEmail(email)) {
+        throw new Error('Por favor ingresa un email válido')
+      }
+
+      // Sanitizar email
+      const sanitizedEmail = sanitizeEmail(email);
+
+      // Rate limiting: máximo 5 intentos por minuto
+      const rateLimitKey = `login:${sanitizedEmail}`;
+      const { allowed } = checkRateLimit(rateLimitKey, 5, 60000);
+      
+      if (!allowed) {
+        throw new Error('Demasiados intentos de inicio de sesión. Por favor espera un minuto.');
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: sanitizedEmail,
         password,
       })
 
@@ -39,7 +56,9 @@ export default function LoginPage() {
       router.push('/dashboard')
       router.refresh()
     } catch (err: any) {
-      console.error('Error signing in:', err)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error signing in:', err)
+      }
       setError(err.message || 'Error al iniciar sesión')
     } finally {
       setLoading(false)

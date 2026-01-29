@@ -36,7 +36,9 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 const getCachedUser = (): Profile | null => {
   const now = Date.now();
   if (userCache.isValid && userCache.user && (now - userCache.lastFetch < CACHE_DURATION)) {
-    console.log('📋 Using cached user data:', userCache.user.full_name);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📋 Using cached user data:', userCache.user.full_name);
+    }
     return userCache.user;
   }
   return null;
@@ -48,7 +50,7 @@ const setCachedUser = (user: Profile | null): void => {
     lastFetch: Date.now(),
     isValid: user !== null
   };
-  if (user) {
+  if (user && process.env.NODE_ENV === 'development') {
     console.log('💾 Cached user data:', user.full_name);
   }
 };
@@ -59,7 +61,9 @@ const clearUserCache = (): void => {
     lastFetch: 0,
     isValid: false
   };
-  console.log('🗑️ User cache cleared');
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🗑️ User cache cleared');
+  }
 };
 
 // ================================================================
@@ -175,14 +179,7 @@ export function useAuth() {
   const roleDisplayName = useMemo(() => {
     if (!user?.role) return 'Usuario';
     
-    const roleMap = {
-      'parent': 'Padre/Madre',
-      'teacher': 'Docente',
-      'specialist': 'Especialista',
-      'admin': 'Administrador'
-    };
-    
-    return roleMap[user.role] || 'Usuario';
+    return USER_ROLE_LABELS[user.role] || 'Usuario';
   }, [user]);
 
   /**

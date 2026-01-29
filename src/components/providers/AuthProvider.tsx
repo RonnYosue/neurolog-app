@@ -13,9 +13,9 @@ import React, {
   useCallback,
   useMemo 
 } from 'react';
-import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import type { Profile, UserRole } from '@/types';
+import { USER_ROLES } from '@/lib/constants';
 
 // ================================================================
 // TIPOS DEL CONTEXTO
@@ -36,6 +36,9 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Export AuthContext for use in hooks
+export { AuthContext };
 
 // ================================================================
 // PROVIDER PROPS
@@ -73,7 +76,9 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
    */
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
-      console.log('🔍 Fetching profile for user:', userId);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Fetching profile for user:', userId);
+      }
       
       //  CAMBIO: .maybeSingle() en lugar de .single()
       const { data, error } = await supabase
@@ -83,13 +88,17 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         .maybeSingle(); // ← ESTO ELIMINA EL ERROR 406
 
       if (error) {
-        console.error('❌ Error fetching profile:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Error fetching profile:', error);
+        }
         return null;
       }
 
       //  Si no existe el perfil, crearlo automáticamente
       if (!data) {
-        console.log('ℹ️ Profile not found, creating new profile...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('ℹ️ Profile not found, creating new profile...');
+        }
         
         const { data: authUser, error: authError } = await supabase.auth.getUser();
         
@@ -114,21 +123,29 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
             .single();
           
           if (createError) {
-            console.error('❌ Error creating profile:', createError);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('❌ Error creating profile:', createError);
+            }
             return null;
           }
           
-          console.log('✅ Profile created successfully:', newProfile.full_name);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Profile created successfully:', newProfile?.full_name);
+          }
           return newProfile as Profile;
         }
         
         return null;
       }
 
-      console.log('✅ Profile fetched successfully:', data.full_name);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Profile fetched successfully:', data.full_name);
+      }
       return data as Profile;
     } catch (err) {
-      console.error('❌ Unexpected error fetching profile:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Unexpected error fetching profile:', err);
+      }
       return null;
     }
   }, [supabase]);
@@ -146,18 +163,24 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         .maybeSingle(); // ← ESTO TAMBIÉN PREVIENE ERRORES
 
       if (error) {
-        console.warn('⚠️ Could not check admin status:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ Could not check admin status:', error);
+        }
         return false;
       }
 
       if (!data) {
-        console.warn('⚠️ No profile found for admin check');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ No profile found for admin check');
+        }
         return false;
       }
 
-      return data.role === 'admin';
+      return data.role === USER_ROLES.ADMIN;
     } catch (err) {
-      console.error('❌ Error checking admin status:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Error checking admin status:', err);
+      }
       return false;
     }
   }, [supabase]);
@@ -172,7 +195,9 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         .update({ last_login: new Date().toISOString() })
         .eq('id', userId);
     } catch (err) {
-      console.warn('⚠️ Could not update last login:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ Could not update last login:', err);
+      }
     }
   }, [supabase]);
 
@@ -284,9 +309,12 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
-    } catch (err: any) {
-      console.error('❌ Reset password error:', err);
-      setError(err.message || 'Error al enviar email de recuperación');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al enviar email de recuperación';
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Reset password error:', err);
+      }
+      setError(errorMessage);
       throw err;
     }
   }, [supabase]);
@@ -305,7 +333,9 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         }
       }
     } catch (err) {
-      console.error('❌ Error refreshing user:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Error refreshing user:', err);
+      }
     }
   }, [user, fetchProfile, checkAdminStatus]);
 
@@ -324,19 +354,25 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     initializedRef.current = true;
     mountedRef.current = true;
 
-    console.log('🚀 Initializing AuthProvider (ONE TIME ONLY)...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🚀 Initializing AuthProvider (ONE TIME ONLY)...');
+    }
 
     /**
      *  FUNCIÓN DE INICIALIZACIÓN ÚNICA
      */
     const initializeAuth = async (): Promise<void> => {
       try {
-        console.log('🔍 Getting initial session...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 Getting initial session...');
+        }
         
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user && mountedRef.current) {
-          console.log('✅ Session found, fetching profile...');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Session found, fetching profile...');
+          }
           
           await updateLastLogin(session.user.id);
           
@@ -351,10 +387,14 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
             }
           }
         } else {
-          console.log('ℹ️ No active session found');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('ℹ️ No active session found');
+          }
         }
       } catch (err) {
-        console.error('❌ Error during initialization:', err);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Error during initialization:', err);
+        }
         if (mountedRef.current) {
           setError('Error al cargar la sesión');
         }
@@ -373,11 +413,15 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         async (event, session) => {
           if (!mountedRef.current) return;
 
-          console.log('🔄 Auth state changed:', event);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔄 Auth state changed:', event);
+          }
 
           try {
             if (event === 'SIGNED_IN' && session?.user) {
-              console.log('✅ User signed in, fetching profile...');
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ User signed in, fetching profile...');
+              }
               setLoading(true);
               
               await updateLastLogin(session.user.id);
@@ -392,19 +436,25 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
                 }
               }
             } else if (event === 'SIGNED_OUT') {
-              console.log('👋 User signed out');
+              if (process.env.NODE_ENV === 'development') {
+                console.log('👋 User signed out');
+              }
               if (mountedRef.current) {
                 setUser(null);
                 setIsAdmin(false);
                 setError(null);
               }
             } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-              console.log('🔄 Token refreshed, maintaining user state');
+              if (process.env.NODE_ENV === 'development') {
+                console.log('🔄 Token refreshed, maintaining user state');
+              }
               // No necesitamos recargar el perfil en token refresh
               // El usuario ya está cargado y el token se renovó automáticamente
             }
           } catch (err) {
-            console.error('❌ Error handling auth state change:', err);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('❌ Error handling auth state change:', err);
+            }
             if (mountedRef.current) {
               setError('Error en el cambio de estado de autenticación');
             }
@@ -426,7 +476,9 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
     //  CLEANUP FUNCTION
     return () => {
-      console.log('🧹 Cleaning up AuthProvider...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🧹 Cleaning up AuthProvider...');
+      }
       mountedRef.current = false;
       
       if (authSubscriptionRef.current) {

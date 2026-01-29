@@ -18,7 +18,9 @@ export default function ExportPage() {
     setIsExporting(false);
     
     // Aquí iría la lógica real de exportación
-    console.log(`Exportando en formato: ${format}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Exportando en formato: ${format}`);
+    }
   };
 
   return (

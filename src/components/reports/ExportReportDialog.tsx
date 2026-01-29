@@ -33,17 +33,21 @@ export function ExportReportDialog({ open, onOpenChange, data, metrics }: Export
       // TODO: Implementar lógica real de exportación
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simular exportación
       
-      console.log('Exportando reporte:', {
-        format,
-        includeCharts,
-        includeRawData,
-        sendByEmail,
-        recordCount: data.length
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Exportando reporte:', {
+          format,
+          includeCharts,
+          includeRawData,
+          sendByEmail,
+          recordCount: data.length
+        });
+      }
       
       onOpenChange(false);
     } catch (error) {
-      console.error('Error exporting report:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error exporting report:', error);
+      }
     } finally {
       setIsExporting(false);
     }

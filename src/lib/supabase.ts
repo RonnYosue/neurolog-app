@@ -2,16 +2,24 @@
 // Configuración de Supabase separada para Client y Server Components
 
 import { createBrowserClient } from '@supabase/ssr'
+import { sanitizeUUID } from './security'
 
 // ================================================================
 // CONFIGURACIÓN DE ENVIRONMENT
 // ================================================================
 
+// Obtener variables de entorno (funcionan en el cliente con NEXT_PUBLIC_)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+// Validación de variables requeridas
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+  throw new Error('Missing required Supabase environment variables')
+}
+
+// Validación adicional de formato de URL
+if (!supabaseUrl.startsWith('https://')) {
+  throw new Error('Supabase URL must use HTTPS protocol')
 }
 
 // ================================================================
@@ -28,38 +36,62 @@ export function createClient() {
 
 /**
  * Verifica si el usuario puede acceder a un niño específico
+ * @param childId - UUID del niño (será sanitizado)
+ * @param userId - UUID del usuario opcional (será sanitizado)
  */
 export async function userCanAccessChild(childId: string, userId?: string): Promise<boolean> {
-  const supabase = createClient()
+  if (!childId) {
+    return false
+  }
   
   try {
+    // Sanitizar UUIDs para prevenir injection
+    const sanitizedChildId = sanitizeUUID(childId);
+    const sanitizedUserId = userId ? sanitizeUUID(userId) : null;
+    
+    const supabase = createClient()
+    
     const { data } = await supabase.rpc('user_can_access_child', {
-      child_id: childId,
-      user_id: userId
+      child_id: sanitizedChildId,
+      user_id: sanitizedUserId
     })
     
     return data === true
   } catch (error) {
-    console.error('Error checking child access:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error checking child access:', error)
+    }
     return false
   }
 }
 
 /**
  * Verifica si el usuario puede editar un niño específico
+ * @param childId - UUID del niño (será sanitizado)
+ * @param userId - UUID del usuario opcional (será sanitizado)
  */
 export async function userCanEditChild(childId: string, userId?: string): Promise<boolean> {
-  const supabase = createClient()
+  if (!childId) {
+    return false
+  }
   
   try {
+    // Sanitizar UUIDs para prevenir injection
+    const sanitizedChildId = sanitizeUUID(childId);
+    const sanitizedUserId = userId ? sanitizeUUID(userId) : null;
+    
+    const supabase = createClient()
+    
     const { data } = await supabase.rpc('user_can_edit_child', {
-      child_id: childId,
-      user_id: userId
+      child_id: sanitizedChildId,
+      user_id: sanitizedUserId
     })
     
     return data === true
   } catch (error) {
-    console.error('Error checking child edit permissions:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error checking child edit permissions:', error)
+    }
     return false
   }
 }
@@ -72,16 +104,22 @@ export async function auditSensitiveAccess(
   resourceId: string,
   details?: string
 ): Promise<void> {
+  if (!action || !resourceId) {
+    return
+  }
+  
   const supabase = createClient()
   
   try {
     await supabase.rpc('audit_sensitive_access', {
       action_type: action,
       resource_id: resourceId,
-      action_details: details
+      action_details: details ?? null
     })
   } catch (error) {
-    console.error('Error logging sensitive access:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error logging sensitive access:', error)
+    }
     // No fallar por errores de auditoría
   }
 }
@@ -95,28 +133,6 @@ export interface SupabaseError {
   details?: string
   hint?: string
   code?: string
-}
-
-export function handleSupabaseError(error: any): SupabaseError {
-  if (error?.message) {
-    return {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code
-    }
-  }
-  
-  return {
-    message: 'Ha ocurrido un error inesperado',
-    details: String(error)
-  }
-}
-
-export function isAuthError(error: any): boolean {
-  return error?.message?.includes('Invalid login credentials') ||
-         error?.message?.includes('Email not confirmed') ||
-         error?.message?.includes('User not found')
 }
 
 // ================================================================
@@ -137,6 +153,10 @@ export async function uploadFile(
   file: File,
   path?: string
 ): Promise<{ url: string; path: string }> {
+  if (!file) {
+    throw new Error('File is required')
+  }
+  
   const supabase = createClient()
   const fileName = path || `${Date.now()}-${file.name}`
   
@@ -148,12 +168,16 @@ export async function uploadFile(
     throw new Error(`Error uploading file: ${error.message}`)
   }
   
-  const { data: { publicUrl } } = supabase.storage
+  if (!data) {
+    throw new Error('Upload failed: no data returned')
+  }
+  
+  const { data: urlData } = supabase.storage
     .from(STORAGE_BUCKETS[bucket])
     .getPublicUrl(data.path)
   
   return {
-    url: publicUrl,
+    url: urlData.publicUrl,
     path: data.path
   }
 }
@@ -162,6 +186,10 @@ export async function uploadFile(
  * Obtiene URL pública de un archivo
  */
 export function getPublicUrl(bucket: keyof typeof STORAGE_BUCKETS, path: string): string {
+  if (!path) {
+    return ''
+  }
+  
   const supabase = createClient()
   
   const { data } = supabase.storage
@@ -178,6 +206,10 @@ export async function deleteFile(
   bucket: keyof typeof STORAGE_BUCKETS,
   path: string
 ): Promise<void> {
+  if (!path) {
+    throw new Error('Path is required')
+  }
+  
   const supabase = createClient()
   
   const { error } = await supabase.storage
@@ -189,32 +221,5 @@ export async function deleteFile(
   }
 }
 
-// ================================================================
-// UTILIDADES DE REALTIME
-// ================================================================
-
-/**
- * Suscribirse a cambios en tiempo real de una tabla
- */
-export function subscribeToTable(
-  table: string,
-  callback: (payload: any) => void,
-  filter?: string
-) {
-  const supabase = createClient()
-  
-  let channel = supabase
-    .channel(`public:${table}`)
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: table,
-      filter: filter
-    }, callback)
-  
-  channel.subscribe()
-  
-  return () => {
-    channel.unsubscribe()
-  }
-}
+// Export default client instance for backwards compatibility
+export const supabase = createClient()
